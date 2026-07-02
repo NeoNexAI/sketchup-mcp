@@ -1,6 +1,6 @@
 [project]
 name = "neonexai-sketchup-mcp"
-version = "1.0.0"
+version = "1.1.0"
 description = "SketchUp integration through the Model Context Protocol — NeoNexAI hardened fork (no arbitrary code execution)"
 readme = "README.md"
 requires-python = ">=3.10"

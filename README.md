@@ -1,180 +1,151 @@
-# SketchUp MCP — NeoNexAI hardened fork
+# SketchUp MCP (hardened fork)
 
-Conecta **SketchUp** con **Claude** (Claude Desktop o Claude Code) vía el Model Context
-Protocol (MCP). Permite crear, transformar, materializar y exportar geometría en
-SketchUp con lenguaje natural — "haz una mesa de 120×60×75", "redondea las aristas
-de ese tablero 2 cm", "resta este volumen del muro", "expórtame la escena a DAE".
+Connect **SketchUp** to any MCP client (Claude Desktop, Claude Code, etc.) and
+drive it in natural language — create, transform and materialize geometry, run
+boolean operations, chamfer/fillet edges, build woodworking joints, and export
+the scene.
 
-> **Fork endurecido de [mhyrr/sketchup-mcp](https://github.com/mhyrr/sketchup-mcp).**
-> El original expone `eval_ruby` (ejecución de código Ruby arbitrario dentro de
-> SketchUp → acceso total a disco y red). **Aquí `eval_ruby` está eliminado** — tanto
-> del lado Python como del Ruby — y el socket escucha **solo en `127.0.0.1`** (nunca en
-> red). Superficie de herramientas acotada y auditada. Ver [Seguridad](#seguridad).
+## Provenance
+
+- Maintained by **[NeoNexAI Agency](https://github.com/NeoNexAI)** (AI
+  consulting studio). Contact: `info@neonexai.com`.
+- Hardened fork of [mhyrr/sketchup-mcp](https://github.com/mhyrr/sketchup-mcp),
+  itself inspired by [blender-mcp](https://github.com/ahujasid/blender-mcp).
+- **What "hardened" means:** the upstream project exposed an `eval_ruby` tool
+  (arbitrary Ruby execution inside SketchUp → full disk/network access). This
+  fork **removes it entirely** — Python server and Ruby extension — and the
+  extension socket listens **only on `127.0.0.1`**. The tool surface is 13
+  explicit, bounded tools. Audit the code yourself before installing, as you
+  would with any third-party software: the diff vs upstream is public.
 
 ---
 
-## Qué necesita (dos piezas)
+## Architecture (two pieces)
 
-SketchUp no tiene API externa: solo se controla desde su **Ruby API embebida**. Por eso
-el sistema tiene dos componentes que trabajan juntos:
-
-1. **Extensión de SketchUp** (Ruby) — abre un servidor TCP local (puerto `9876`) dentro
-   de SketchUp y ejecuta los comandos de geometría.
-2. **Servidor MCP** (Python) — el puente que Claude arranca; traduce las peticiones de
-   Claude a comandos para la extensión.
+SketchUp has no external API: it can only be driven from its **embedded Ruby
+API**. Hence two components working together:
 
 ```
-Claude Desktop / Claude Code
+MCP client (Claude Desktop / Claude Code)
         │  (MCP, stdio)
         ▼
-  Servidor MCP (Python, uvx)
-        │  (socket TCP 127.0.0.1:9876)
+  MCP server (Python, this package — uvx)
+        │  (TCP socket 127.0.0.1:9876)
         ▼
-  Extensión SketchUp (Ruby)  ──►  SketchUp
+  SketchUp extension (Ruby, su_mcp/)  ──►  SketchUp
 ```
 
----
+## Requirements
 
-## Requisitos
+- **SketchUp** 2021 or later (Windows; the Ruby extension uses only the
+  standard SketchUp Ruby API).
+- **Python 3.10+** and **uv/uvx** (`pip install uv` or
+  `winget install astral-sh.uv`).
 
-- **SketchUp** (2023 o posterior recomendado) con acceso a la Ruby Console.
-- **Python 3.10+**.
-- **uv / uvx** — gestor de paquetes Python. Si no lo tienen:
-  ```powershell
-  pip install uv
-  ```
-  o `winget install astral-sh.uv`.
+## Installation
 
----
+### Step 1 — SketchUp extension (Ruby)
 
-## Instalación
-
-### Paso 1 — Extensión de SketchUp
-
-**Opción A (recomendada): copiar la carpeta a Plugins.**
-Copia el archivo `su_mcp.rb` **y** la carpeta `su_mcp/` (ambos de este repositorio) dentro de:
+Copy `su_mcp.rb` **and** the `su_mcp/` folder from this repository into:
 
 ```
-%AppData%\SketchUp\SketchUp 2024\SketchUp\Plugins\
-```
-(ajusta `2024` a la versión instalada). Reinicia SketchUp.
-
-**Opción B: empaquetar un `.rbz`.**
-Comprime `su_mcp.rb` + carpeta `su_mcp/` en un `.zip`, renómbralo a `su_mcp.rbz`, y en
-SketchUp: `Ventana → Extension Manager → Install Extension` → selecciona el `.rbz`.
-
-Tras instalar, arranca el servidor dentro de SketchUp: menú **Extensiones → SketchUp MCP
-→ Start Server**. Debe indicar que escucha en el puerto `9876`.
-
-### Paso 2 — Conectar Claude al servidor MCP
-
-Elige **una** de las dos opciones.
-
-> **Mientras el paquete no esté en PyPI**, se instala directamente desde GitHub
-> sustituyendo `neonexai-sketchup-mcp` por
-> `--from git+https://github.com/NeoNexAI/sketchup-mcp neonexai-sketchup-mcp`
-> en los ejemplos de abajo. Funciona exactamente igual.
-
-#### Opción 1 — con CLI (`claude mcp`)
-
-Si tienen el CLI de Claude Code funcionando:
-
-```bash
-claude mcp add sketchup --scope user -- uvx neonexai-sketchup-mcp
+%AppData%\SketchUp\SketchUp 20XX\SketchUp\Plugins\
 ```
 
-#### Opción 2 — sin CLI (editar el JSON de configuración)
+(replace `20XX` with your version). Restart SketchUp, then start the server:
+menu **Extensions → SketchUp MCP → Start Server** (listens on `127.0.0.1:9876`).
 
-Si usan la app de Claude Desktop o el CLI da error, se configura a mano.
+Alternative: zip `su_mcp.rb` + `su_mcp/`, rename to `.rbz`, and install via
+`Window → Extension Manager → Install Extension`.
 
-**Claude Desktop** — edita `%AppData%\Claude\claude_desktop_config.json`:
+### Step 2 — MCP server (Python)
+
+Pin the version you audited (recommended — avoids silently pulling future
+releases):
+
+**Claude Desktop** — `%AppData%\Claude\claude_desktop_config.json`:
 
 ```json
 {
   "mcpServers": {
     "sketchup": {
       "command": "uvx",
-      "args": ["neonexai-sketchup-mcp"]
+      "args": ["neonexai-sketchup-mcp==1.1.0"]
     }
   }
 }
 ```
 
-**Claude Code (config global)** — añade el mismo bloque `sketchup` dentro de
-`mcpServers` en `%UserProfile%\.claude.json` (o el `.mcp.json` del proyecto).
+**Claude Code** — same block in `%UserProfile%\.claude.json`, or via CLI:
 
-Reinicia Claude. `uvx` descarga e instala el paquete automáticamente desde PyPI la
-primera vez; para actualizar, `uvx` usa la última versión publicada.
+```bash
+claude mcp add sketchup --scope user -- uvx neonexai-sketchup-mcp==1.1.0
+```
+
+**From GitHub instead of PyPI** (pin to a commit for reproducibility):
+
+```json
+"args": ["--from", "git+https://github.com/NeoNexAI/sketchup-mcp@main", "neonexai-sketchup-mcp"]
+```
+
+Restart the client. First call to make: `sketchup_status`.
 
 ---
 
-## Herramientas disponibles
+## Tools (13)
 
-| Herramienta | Qué hace |
+| Tool | What it does |
 |---|---|
-| `create_component` | Crea geometría (cubo/caja) con posición y dimensiones |
-| `transform_component` | Mueve, rota o escala un componente por su ID |
-| `delete_component` | Elimina un componente por su ID |
-| `get_selection` | Devuelve los componentes seleccionados en SketchUp |
-| `set_material` | Aplica un material/color a un componente |
-| `export_scene` | Exporta la escena (`skp`, `dae`/`obj`, etc.) |
-| `boolean_operation` | Unión / diferencia / intersección entre dos sólidos |
-| `chamfer_edges` | Achaflana (bisela) las aristas de un sólido |
-| `fillet_edges` | Redondea las aristas de un sólido |
-| `create_mortise_tenon` | Ensamble caja y espiga entre dos piezas |
-| `create_dovetail` | Ensamble cola de milano |
-| `create_finger_joint` | Ensamble de dedos (caja) |
+| `sketchup_status` | Verify the connection (call first) |
+| `sketchup_get_selection` | Ids + data of the current selection |
+| `sketchup_create_component` | Create primitive (cube/cylinder/sphere/cone) |
+| `sketchup_transform_component` | Move / rotate / scale by id |
+| `sketchup_delete_component` | Delete by id |
+| `sketchup_set_material` | Apply material/color |
+| `sketchup_export_scene` | Export (skp/dae/obj/stl/png/jpg) |
+| `sketchup_boolean_operation` | Union / difference / intersection of solids |
+| `sketchup_chamfer_edges` | Bevel edges |
+| `sketchup_fillet_edges` | Round edges |
+| `sketchup_create_mortise_tenon` | Mortise & tenon joint |
+| `sketchup_create_dovetail` | Dovetail joint |
+| `sketchup_create_finger_joint` | Finger (box) joint |
 
-### Ejemplos de peticiones a Claude
+### Example prompts
 
-- "Crea una caja de 200×80×40 cm en el origen y ponle material 'Wood_Cherry'."
-- "Selecciona esa pieza y muévela 50 cm en Z."
-- "Haz la diferencia booleana: resta el cilindro (tool) del bloque (target)."
-- "Redondea todas las aristas de ese tablero con radio 1,5 cm."
-- "Exporta la escena a DAE para llevarla a otro programa."
+- "Create a 200×80×40 box at the origin and apply 'Wood_Cherry'."
+- "Select that piece" → `sketchup_get_selection` → "move it 50 up in Z."
+- "Boolean difference: subtract the cylinder (tool) from the block (target)."
+- "Fillet all edges of that board with radius 1.5."
+- "Export the scene to DAE."
 
----
+**Units**: SketchUp models default to **inches**. Tell your assistant which
+units you work in (cm/m) so it converts.
 
-## Qué NO hace (honestidad técnica)
+## What it does NOT do
 
-- **No renderiza fotorealista.** El render (Veras, V-Ray, Enscape) no es scriptable por
-  esta vía — no tiene API pública. El MCP construye y modifica geometría; el render se
-  sigue lanzando desde su plugin.
-- **No sustituye el modelado fino manual.** Es un acelerador para operaciones repetitivas
-  y paramétricas, no un modelador autónomo de proyectos completos.
-- **No abre archivos ni navega por disco** — a diferencia del original, no ejecuta código
-  arbitrario.
+- **No photorealistic rendering** — render plugins (V-Ray, Enscape, etc.)
+  expose no scripting surface here; keep launching them from their own UI.
+- **No arbitrary code execution** — by design. The 13 tools above are the
+  whole surface.
+- **No network access** — the extension accepts local connections only.
 
----
+## Configuration (env vars)
 
-## Seguridad
-
-Cambios frente al upstream (`mhyrr/sketchup-mcp`):
-
-- **`eval_ruby` eliminado** del servidor Python (`server.py`) y del handler Ruby
-  (`su_mcp/main.rb`). Era el motivo por el que el original se consideraba inseguro:
-  permitía a Claude ejecutar cualquier código Ruby en la máquina.
-- **Socket restringido a `127.0.0.1`** — el servidor de la extensión no acepta conexiones
-  de red, solo del propio equipo.
-- **Superficie acotada**: solo las 12 herramientas de la tabla, todas con parámetros
-  explícitos y validados.
-
-Auditar antes de instalar: `skill-vetter` sobre este repositorio (protocolo CISO NeoNexAI).
-
----
+| Variable | Default | Purpose |
+|---|---|---|
+| `SKETCHUP_MCP_HOST` | `127.0.0.1` | Extension host |
+| `SKETCHUP_MCP_PORT` | `9876` | Extension port |
+| `SKETCHUP_MCP_TIMEOUT` | `30` | Socket timeout (seconds) |
 
 ## Troubleshooting
 
-- **"Could not connect to SketchUp"**: la extensión no está arrancada. Menú
-  `Extensiones → SketchUp MCP → Start Server`.
-- **Errores de comando**: abre la Ruby Console de SketchUp (`Ventana → Ruby Console`) para
-  ver el mensaje detallado.
-- **Timeouts**: divide la petición en pasos más pequeños.
-- **`uvx` no encontrado**: instala `uv` (ver Requisitos) y reinicia la terminal/app.
+- **"No se pudo conectar con SketchUp"** → the extension server is not
+  running: `Extensions → SketchUp MCP → Start Server`.
+- **Command errors** → open SketchUp's Ruby Console (`Window → Ruby Console`)
+  for the detailed message.
+- **Boolean operation fails** → both entities must be closed (manifold)
+  solids, not open surfaces.
 
----
+## License
 
-## Licencia
-
-MIT. Fork de [mhyrr/sketchup-mcp](https://github.com/mhyrr/sketchup-mcp), inspirado a su
-vez en [blender-mcp](https://github.com/ahujasid/blender-mcp).
+MIT.
