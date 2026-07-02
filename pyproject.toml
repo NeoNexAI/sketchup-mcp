@@ -24,6 +24,7 @@ Issues = "https://github.com/NeoNexAI/sketchup-mcp/issues"
 
 [project.scripts]
 sketchup-mcp = "sketchup_mcp.server:main"
+neonexai-sketchup-mcp = "sketchup_mcp.server:main"
 
 [project.entry-points.mcp]
 sketchup = "sketchup_mcp.server:mcp"

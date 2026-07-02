@@ -70,6 +70,11 @@ Tras instalar, arranca el servidor dentro de SketchUp: menú **Extensiones → S
 
 Elige **una** de las dos opciones.
 
+> **Mientras el paquete no esté en PyPI**, se instala directamente desde GitHub
+> sustituyendo `neonexai-sketchup-mcp` por
+> `--from git+https://github.com/NeoNexAI/sketchup-mcp neonexai-sketchup-mcp`
+> en los ejemplos de abajo. Funciona exactamente igual.
+
 #### Opción 1 — con CLI (`claude mcp`)
 
 Si tienen el CLI de Claude Code funcionando:
