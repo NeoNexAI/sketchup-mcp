@@ -1,0 +1,10 @@
+{
+  "name": "SketchUp MCP Server (NeoNexAI)",
+  "description": "Model Context Protocol server for SketchUp — NeoNexAI hardened fork (no arbitrary code execution)",
+  "creator": "NeoNexAI Agency",
+  "copyright": "2026",
+  "license": "MIT",
+  "product_id": "NEONEXAI_SU_MCP_SERVER",
+  "version": "1.0.0",
+  "build": "1"
+}
