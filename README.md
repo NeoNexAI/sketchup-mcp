@@ -1,5 +1,10 @@
 # SketchUp MCP (hardened fork)
 
+[![CI](https://github.com/NeoNexAI/sketchup-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/NeoNexAI/sketchup-mcp/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/neonexai-sketchup-mcp)](https://pypi.org/project/neonexai-sketchup-mcp/)
+[![Python](https://img.shields.io/pypi/pyversions/neonexai-sketchup-mcp)](https://pypi.org/project/neonexai-sketchup-mcp/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 Connect **SketchUp** to any MCP client (Claude Desktop, Claude Code, etc.) and
 drive it in natural language — create, transform and materialize geometry, run
 boolean operations, chamfer/fillet edges, build woodworking joints, and export
