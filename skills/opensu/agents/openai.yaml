@@ -1,4 +1,4 @@
 interface:
   display_name: "OpenSU"
   short_description: "AI modeling agent for SketchUp with drawing reconstruction, hierarchical semantic grouping, and building workflows"
-  default_prompt: "Use $opensu to inspect the current SketchUp model, execute the requested architectural modeling in millimetres, and validate the result before finishing."
+  default_prompt: "使用 $opensu：先检查当前 SketchUp 模型，按我的建筑要求以毫米建模，完成后 inspect、validate，有问题再 diagnose 并做最小修复。"

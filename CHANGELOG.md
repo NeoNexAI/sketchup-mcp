@@ -2,6 +2,21 @@
 
 All notable changes to this project are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased]
+
+### Changed
+- `opensu` Skill: SKILL.md condensed into a routing guide (details live in references); description adds Chinese trigger terms and its boundary with `sketchup-usage`.
+- `tool-contract.md` now covers edit, repair, drawing pipeline, layout, and group commands; stale stair/polygon limitations removed.
+- `sketchup-usage` Skill: correct menu path (`Extensions → MCP Server`), scope limited to the generic `sketchup_*` tools.
+- `docs/CODEX_SETUP.md` points to the real `skills/opensu/` Skill and v1.15.0 RBZ.
+
+### Fixed
+- Name-based entity lookup (`--name`, `--wall-name`) no longer reports "not found" on models with more than 1000 root groups/components.
+- `opensu.py status` now verifies that the port answers as OpenSU instead of only checking that it is open.
+
+### Added
+- `tests/test_skill_docs.py` checks that every documented `python scripts/…` command exists, and covers name lookup and status.
+
 ## [1.15.0] — 2026-09-23
 
 ### Added

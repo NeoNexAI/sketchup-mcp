@@ -76,26 +76,68 @@ def _status() -> dict[str, Any]:
             f"Cannot connect to SketchUp at {HOST}:{PORT}. Open SketchUp, then use "
             "Extensions > MCP Server > Start Server."
         ) from exc
-    return {"ok": True, "host": HOST, "port": PORT}
+
+    # A bare TCP connect also succeeds against another program or an old
+    # extension on the same port, so confirm the OpenSU tool surface answers.
+    try:
+        model = _inspect(1)
+    except OpenSUError as exc:
+        raise OpenSUError(
+            f"Port {HOST}:{PORT} is open but did not answer as OpenSU ({exc}). "
+            "Install/enable the OpenSU extension (not the original SketchUp MCP), "
+            "restart SketchUp, and make sure no other program uses this port."
+        ) from exc
+    if not isinstance(model, dict):
+        raise OpenSUError("inspect_model returned an unexpected response.")
+    return {
+        "ok": True,
+        "host": HOST,
+        "port": PORT,
+        "model_title": model.get("model", {}).get("title"),
+        "total_inspectable_entities": model.get("total_inspectable_entities"),
+    }
 
 
 def _inspect(max_entities: int = 200) -> Any:
     return _send("inspect_model", {"max_entities": max_entities})
 
 
-def _find_entity_id(name: str, opensu_type: str | None = None) -> int:
-    model = _inspect(1000)
-    if not isinstance(model, dict):
-        raise OpenSUError("inspect_model returned an unexpected response.")
-    matches = [
+def _exact_matches(entities: list[Any], name: str, opensu_type: str | None) -> list[dict[str, Any]]:
+    return [
         entity
-        for entity in model.get("entities", [])
-        if entity.get("name") == name
+        for entity in entities
+        if isinstance(entity, dict)
+        and entity.get("name") == name
         and (opensu_type is None or entity.get("opensu_type") == opensu_type)
     ]
+
+
+def _find_entity_id(name: str, opensu_type: str | None = None) -> int:
+    # find_entities filters server-side before applying its limit, so it still
+    # finds names in models with more root entities than inspect_model returns.
+    payload: dict[str, Any] = {"name_contains": name, "limit": 1000}
+    if opensu_type:
+        payload["opensu_type"] = opensu_type
+    found = _send("find_entities", payload)
+    matches = _exact_matches(found.get("entities", []) if isinstance(found, dict) else [], name, opensu_type)
+
+    truncated = False
+    if not matches:
+        # inspect_model also matches unnamed component instances by definition name.
+        model = _inspect(1000)
+        if not isinstance(model, dict):
+            raise OpenSUError("inspect_model returned an unexpected response.")
+        matches = _exact_matches(model.get("entities", []), name, opensu_type)
+        truncated = bool(model.get("truncated"))
+
     if not matches:
         kind = f" {opensu_type}" if opensu_type else ""
-        raise OpenSUError(f"No OpenSU{kind} entity named {name!r} was found.")
+        hint = (
+            " The model has more than 1000 root groups/components; pass the explicit entity id instead."
+            if truncated
+            else ""
+        )
+        raise OpenSUError(f"No OpenSU{kind} entity named {name!r} was found.{hint}")
     if len(matches) > 1:
         raise OpenSUError(f"More than one matching entity is named {name!r}; use an explicit entity id instead.")
     return int(matches[0]["entity_id"])

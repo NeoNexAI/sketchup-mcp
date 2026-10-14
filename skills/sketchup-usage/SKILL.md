@@ -1,10 +1,12 @@
 ---
 name: sketchup-usage
 description: >-
-  Guide for working well with the SketchUp MCP server (sketchup_* tools):
-  creating/transforming/deleting components, materials, boolean operations,
-  edge chamfer/fillet, woodworking joints and scene export. Use it when the
-  user asks to model or edit 3D geometry in SketchUp through this MCP.
+  Guide for the generic SketchUp MCP tools (sketchup_* tools): primitive
+  components, transforms, materials, boolean operations, edge chamfer/fillet,
+  woodworking joints and scene export. Use it only when sketchup_* tools are
+  available in the session and the task is generic/furniture/woodworking
+  geometry. For buildings and architectural modeling (walls, levels, grids,
+  drawings) use the opensu skill instead.
 ---
 
 # SketchUp MCP — usage guide
@@ -16,8 +18,8 @@ of trying workarounds.
 
 ## Before anything: two pieces must be alive
 
-1. **SketchUp open** with the "SketchUp MCP" extension server started
-   (menu `Extensions → SketchUp MCP → Start Server`, port `9876`).
+1. **SketchUp open** with the OpenSU extension server started
+   (menu `Extensions → MCP Server → Start Server`, port `9876`).
 2. The MCP server itself (the client launches it via `uvx`).
 
 Start every session with **`sketchup_status`**. If it fails, the extension is
@@ -54,8 +56,10 @@ depends on the SketchUp edition)
 
 ## Working carefully
 
-- **Units are the #1 source of errors**: SketchUp defaults to inches. Ask the
-  user what units they work in (cm/m/inches) and convert before calling.
+- **Units are the #1 source of errors**: these generic tools use SketchUp's
+  internal unit (inches). Ask the user what units they work in (cm/m/inches)
+  and convert before calling. (The opensu skill is different: it always uses
+  millimetres.)
 - Destructive operations (`delete_component`, `delete_originals=true`,
   `delete_original=true`) modify the user's model. Summarize what you are
   about to do before bulk or destructive changes. Remind them Ctrl+Z undoes.

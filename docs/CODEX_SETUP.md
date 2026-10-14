@@ -1,14 +1,14 @@
 # OpenSU + Codex setup
 
-OpenSU supports two workflows. **Normal users should use the SketchUp RBZ extension plus the bundled `$sketchup-modeling` Skill.** The repository-scoped MCP configuration remains available for development and debugging.
+OpenSU supports two workflows. **Normal users should use the SketchUp RBZ extension plus the bundled `$opensu` Skill.** The repository-scoped MCP configuration remains available for development and debugging.
 
 ## Recommended end-user setup
 
-1. Build or download `opensu-v1.13.0.rbz`.
+1. Build or download `opensu-v1.15.0.rbz`.
 2. Install it with SketchUp Extension Manager.
 3. Restart SketchUp.
 4. Start `Extensions > MCP Server > Start Server`.
-5. Install the Skill from `skills/sketchup-modeling/` into Codex.
+5. Install the Skill from `skills/opensu/` into Codex.
 6. Restart Codex after installing or updating the Skill.
 
 The Skill talks directly to the local OpenSU extension at `127.0.0.1:9876`; no repository checkout or separate MCP configuration is required for normal use.
@@ -16,7 +16,7 @@ The Skill talks directly to the local OpenSU extension at `127.0.0.1:9876`; no r
 Typical invocation:
 
 ```text
-$sketchup-modeling
+$opensu
 检查当前 SketchUp，然后根据我的建筑要求建模，完成后 inspect、validate、diagnose。
 ```
 
